@@ -133,12 +133,12 @@ class Tablero:
                 self.imagenes[nombre] = img.subsample(factor, factor)
 
     def mostrar_piezas(self):
-        for f, fila in enumerate(self.piezas):
-            for c, pieza in enumerate(fila):
+        for f, fila in enumerate(self.piezas): #Iteramos lista por lista
+            for c, pieza in enumerate(fila): #Iteramos elemento por elemento
                 if pieza != "--":
                     self.ids[(f,c)] = self.canvas.create_image(
-                        c*self.cuadrado, f*self.cuadrado,
-                        image=self.imagenes[pieza], anchor="nw"
+                        c*self.cuadrado, f*self.cuadrado, #Eje X e Y
+                        image=self.imagenes[pieza], anchor="nw" #Accedemos a las claves de imagenes
                     )
 
     def mover_pieza(self, f_o, c_o, f_d, c_d, pieza):
@@ -150,11 +150,6 @@ class Tablero:
         )
         del self.ids[(f_o, c_o)]
         self.ids[(f_d, c_d)] = nueva_id
-
-
-            # self.canvas.delete(self.ids[(fila, col)])
-            # del self.ids[(fila, col)]
-
 
 
 # --------------------------------------------------------------------
@@ -184,17 +179,17 @@ class Juego:
 
     def seleccionar(self, fila, col):
         pieza = self.estructura.piezas[fila][col]
-        if pieza != "--" and pieza.endswith(self.turno):
+        if pieza != "--" and pieza.endswith(self.turno): #Verificamos que la pieza coincida con el turno
             self.pieza_seleccionada = (fila, col)
             print(f"Pieza seleccionada: {pieza} ({fila},{col})")
 
     def mover(self, fila_d, col_d):
         f_o, c_o = self.pieza_seleccionada
         pieza = self.estructura.piezas[f_o][c_o]
-        color = pieza[-1]
+        color = pieza[-1] #Accede a la última letra de pieza: "B" o "N"
         clase = {
             "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
-        }[pieza[0]](color)
+        }[pieza[0]](color) #Le asignamos a la pieza la clase y color correspondiente
 
         pieza_destino = self.estructura.piezas[fila_d][col_d]
 
@@ -202,9 +197,9 @@ class Juego:
             print("No podés moverte sobre una pieza aliada.")
             self.pieza_seleccionada = None
             return
-
+            #llama al método de la clase correspondiente, lo cual tambien hereda el método camino_libre
         if clase.movimiento_valido(f_o, c_o, fila_d, col_d, self.estructura.piezas):
-            self.capturar_pieza(fila_d, col_d)  # 👈 Captura antes de mover
+            self.capturar_pieza(fila_d, col_d)  #Captura antes de mover
             self.aplicar_movimiento(f_o, c_o, fila_d, col_d, pieza)
             self.turno = "N" if self.turno == "B" else "B"
         else:
@@ -216,12 +211,12 @@ class Juego:
     def capturar_pieza(self, fila, col):
         pieza_objetivo = self.estructura.piezas[fila][col]
         if pieza_objetivo != "--" and not pieza_objetivo.endswith(self.turno):
-            # 🔹 Borrar la imagen visual de la pieza capturada
+            #  Borrar la imagen visual de la pieza capturada
             if (fila, col) in self.tablero.ids:
                 self.tablero.canvas.delete(self.tablero.ids[(fila, col)])
                 del self.tablero.ids[(fila, col)]
 
-            # 🔹 Borrar la pieza lógica
+            #  Borrar la pieza lógica
             self.estructura.piezas[fila][col] = "--"
 
 
