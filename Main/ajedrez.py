@@ -81,6 +81,11 @@ class Rey(Pieza):
 class Peon(Pieza):
     def movimiento_valido(self, fila_o, col_o, fila_d, col_d, piezas):
         direccion = -1 if self.color == "B" else 1
+        #Primer movimiento
+        if fila_o == 1 or fila_o == 6:
+            if col_o == col_d and piezas[fila_d][col_d] == "--":
+                if fila_d - fila_o == direccion or fila_d - fila_o == direccion*2:
+                    return True and self.camino_libre(fila_o, col_o, fila_d, col_d, piezas)
         # Movimiento simple
         if col_o == col_d and piezas[fila_d][col_d] == "--":
             if fila_d - fila_o == direccion:
@@ -117,14 +122,14 @@ class Tablero:
                 )
 
     def cargar_imagenes(self):
-        carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Piezas")
+        carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Piezas") #Ruta absoluta, se vería algo así C:\Users\usuario\Desktop\Ajedrez\Main\Piezas
         self.imagenes = {}
-        nombres = ["AB","AN","CB","CN","KB","KN","PB","PN","QB","QN","TB","TN"]
+        nombres = ["AB","AN","CB","CN","KB","KN","PB","PN","QB","QN","TB","TN"] #Mismos códigos que los archivos '.png'
         for nombre in nombres:
             ruta = os.path.join(carpeta, nombre + ".png")
             if os.path.exists(ruta):
                 img = tk.PhotoImage(file=ruta)
-                factor = max(1, img.width() // self.cuadrado)
+                factor = max(1, img.width() // self.cuadrado) #Fórmula para decidir cuánto reducir la imagen
                 self.imagenes[nombre] = img.subsample(factor, factor)
 
     def mostrar_piezas(self):
