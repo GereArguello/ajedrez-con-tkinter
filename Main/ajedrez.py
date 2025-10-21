@@ -201,7 +201,16 @@ class Juego:
         if clase.movimiento_valido(f_o, c_o, fila_d, col_d, self.estructura.piezas):
             self.capturar_pieza(fila_d, col_d)  #Captura antes de mover
             self.aplicar_movimiento(f_o, c_o, fila_d, col_d, pieza)
+
+            # Verifica si el movimiento actual pone en jaque al rival
+            if self.es_jaque():
+                print("Rey en jaque")
+
+            #Cambiar el turno
             self.turno = "N" if self.turno == "B" else "B"
+
+            print(f"rey {self.turno} en {self.encontrar_rey(self.turno)}")
+            
         else:
             print("Movimiento inválido")
 
@@ -227,6 +236,29 @@ class Juego:
 
         # Actualiza el tablero visual
         self.tablero.mover_pieza(f_o, c_o, f_d, c_d, pieza)
+
+    def encontrar_rey(self, color):
+        for fila, i in enumerate(self.estructura.piezas):
+            for columna, j in enumerate(i):
+                if j.startswith("K") and j.endswith(f"{color}"):
+                    return fila, columna
+
+    def es_jaque(self):
+        color_rey = "B" if self.turno == "N" else "N"
+        fila_rey, col_rey = self.encontrar_rey(color_rey)
+
+        for fila_o, i in enumerate(self.estructura.piezas):
+            for col_o, j in enumerate(i):
+                if j != "--" and j.endswith(self.turno):
+                    clase = {
+                        "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
+                    }[j[0]](j[1])
+                    if clase.movimiento_valido(fila_o, col_o, fila_rey, col_rey, self.estructura.piezas):
+                        print(f"{j} {fila_o} {col_o} está amenazando al rey")
+                        return True
+        return False
+
+
 
     def run(self):
             self.ventana.mainloop()
