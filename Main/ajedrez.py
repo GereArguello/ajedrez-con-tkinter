@@ -83,7 +83,7 @@ class Peon(Pieza):
     def movimiento_valido(self, fila_o, col_o, fila_d, col_d, piezas):
         direccion = -1 if self.color == "B" else 1
         #Primer movimiento
-        if fila_o == 1 or fila_o == 6:
+        if (self.color == "B" and fila_o == 6) or (self.color == "N" and fila_o == 1):
             if col_o == col_d and piezas[fila_d][col_d] == "--":
                 if fila_d - fila_o == direccion or fila_d - fila_o == direccion*2:
                     return True and self.camino_libre(fila_o, col_o, fila_d, col_d, piezas)
@@ -218,8 +218,13 @@ class Juego:
 
             # Verifica si el movimiento actual pone en jaque al rival
             color_rival = "N" if self.turno == "B" else "B"
+
             if self.es_jaque(tablero=self.estructura.piezas, turno=color_rival):
-                print("Rey en jaque")
+                if not self.puede_escapar(color_rival, self.estructura.piezas):
+                    self.pieza_seleccionada = None
+                    print("Jaque Mate!")
+                else:
+                    print("Rey en jaque")
 
             #Cambiar el turno
             self.turno = "N" if self.turno == "B" else "B"
@@ -256,10 +261,14 @@ class Juego:
             for columna, j in enumerate(i):
                 if j.startswith("K") and j.endswith(f"{color}"):
                     return fila, columna
+        return None, None
 
     def es_jaque(self, tablero, turno):
         fila_rey, col_rey = self.encontrar_rey(turno, tablero)
 
+        if fila_rey is None or col_rey is None:
+        # El rey no está en el tablero, no tiene sentido seguir
+            return False
         for fila_o, i in enumerate(tablero):
             for col_o, pieza in enumerate(i):
                 if pieza != "--" and not pieza.endswith(turno):
@@ -270,6 +279,35 @@ class Juego:
                         print(f"{pieza} {fila_o} {col_o} está amenazando al rey")
                         return True
         return False
+    
+
+    def puede_escapar(self, color_rival, tablero):
+        for fila, fila_piezas in enumerate(tablero):
+            for col, pieza in enumerate(fila_piezas):
+                if pieza.endswith(color_rival):
+                    clase = {
+                        "T": Torre, "A": Alfil, "C": Caballo,
+                        "Q": Reina, "K": Rey, "P": Peon
+                    }[pieza[0]](color_rival)
+                    
+                    for fila_d in range(8):
+                        for col_d in range(8):
+                            copia_tablero = copy.deepcopy(tablero)
+
+                            destino = copia_tablero[fila_d][col_d]
+                        
+                            # No podemos mover sobre pieza aliada
+                            if destino != "--" and destino.endswith(color_rival):
+                                continue
+                                
+                                # Simular movimiento
+                            if clase.movimiento_valido(fila, col, fila_d, col_d, copia_tablero):
+                                copia_tablero[fila_d][col_d] = copia_tablero[fila][col]
+                                copia_tablero[fila][col] = "--"
+                                    
+                                if not self.es_jaque(tablero=copia_tablero, turno=color_rival):
+                                    return True  # Hay escape posible
+        return False  # Ningún movimiento salva al rey
 
 
 
