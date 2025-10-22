@@ -1,5 +1,6 @@
 import tkinter as tk
 import os
+import copy
 
 # --------------------------------------------------------------------
 # ESTRUCTURA INICIAL DEL TABLERO
@@ -186,6 +187,8 @@ class Juego:
     def mover(self, fila_d, col_d):
         f_o, c_o = self.pieza_seleccionada
         pieza = self.estructura.piezas[f_o][c_o]
+
+
         color = pieza[-1] #Accede a la última letra de pieza: "B" o "N"
         clase = {
             "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
@@ -197,20 +200,31 @@ class Juego:
             print("No podés moverte sobre una pieza aliada.")
             self.pieza_seleccionada = None
             return
+        
             #llama al método de la clase correspondiente, lo cual tambien hereda el método camino_libre
         if clase.movimiento_valido(f_o, c_o, fila_d, col_d, self.estructura.piezas):
+
+            copia_tablero = copy.deepcopy(self.estructura.piezas) #Hacemos copia para simular jaque
+            copia_tablero[fila_d][col_d] = copia_tablero[f_o][c_o]
+            copia_tablero[f_o][c_o] = "--"
+
+            if self.es_jaque(tablero=copia_tablero, turno=self.turno):
+                self.pieza_seleccionada = None
+                print("Movimiento ilegal: dejaría al rey en jaque.")
+                return
+
             self.capturar_pieza(fila_d, col_d)  #Captura antes de mover
             self.aplicar_movimiento(f_o, c_o, fila_d, col_d, pieza)
 
             # Verifica si el movimiento actual pone en jaque al rival
-            if self.es_jaque():
+            color_rival = "N" if self.turno == "B" else "B"
+            if self.es_jaque(tablero=self.estructura.piezas, turno=color_rival):
                 print("Rey en jaque")
 
             #Cambiar el turno
             self.turno = "N" if self.turno == "B" else "B"
 
-            print(f"rey {self.turno} en {self.encontrar_rey(self.turno)}")
-            
+
         else:
             print("Movimiento inválido")
 
@@ -237,24 +251,23 @@ class Juego:
         # Actualiza el tablero visual
         self.tablero.mover_pieza(f_o, c_o, f_d, c_d, pieza)
 
-    def encontrar_rey(self, color):
-        for fila, i in enumerate(self.estructura.piezas):
+    def encontrar_rey(self, color, tablero):
+        for fila, i in enumerate(tablero):
             for columna, j in enumerate(i):
                 if j.startswith("K") and j.endswith(f"{color}"):
                     return fila, columna
 
-    def es_jaque(self):
-        color_rey = "B" if self.turno == "N" else "N"
-        fila_rey, col_rey = self.encontrar_rey(color_rey)
+    def es_jaque(self, tablero, turno):
+        fila_rey, col_rey = self.encontrar_rey(turno, tablero)
 
-        for fila_o, i in enumerate(self.estructura.piezas):
-            for col_o, j in enumerate(i):
-                if j != "--" and j.endswith(self.turno):
+        for fila_o, i in enumerate(tablero):
+            for col_o, pieza in enumerate(i):
+                if pieza != "--" and not pieza.endswith(turno):
                     clase = {
                         "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
-                    }[j[0]](j[1])
-                    if clase.movimiento_valido(fila_o, col_o, fila_rey, col_rey, self.estructura.piezas):
-                        print(f"{j} {fila_o} {col_o} está amenazando al rey")
+                    }[pieza[0]](pieza[1])
+                    if clase.movimiento_valido(fila_o, col_o, fila_rey, col_rey, tablero):
+                        print(f"{pieza} {fila_o} {col_o} está amenazando al rey")
                         return True
         return False
 
