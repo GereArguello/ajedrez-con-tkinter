@@ -225,6 +225,9 @@ class Juego:
                     print("Jaque Mate!")
                 else:
                     print("Rey en jaque")
+            else:
+                if not self.puede_escapar(color_rival, self.estructura.piezas):
+                    print ("Rey ahogado")
 
             #Cambiar el turno
             self.turno = "N" if self.turno == "B" else "B"
