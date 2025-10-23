@@ -330,7 +330,9 @@ class Juego:
 
 
         else:
+            self.tablero.colorear_opciones([])
             print("Movimiento inválido")
+
 
         self.pieza_seleccionada = None
 
