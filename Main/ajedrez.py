@@ -107,6 +107,7 @@ class Tablero:
         self.piezas = piezas
         self.ids = {}
         self.resaltados = {}
+        self.resaltado_rey = {}
         self.canvas = tk.Canvas(ventana, width=cuadrado*8, height=cuadrado*8)
         self.canvas.pack()
         self.dibujar_casillas()
@@ -156,6 +157,56 @@ class Tablero:
                 stipple="gray25",
                 outline="orange"
             )
+    
+    def colorear_jaque(self, f_rey, c_rey):
+
+        self.resaltado_rey[f_rey,c_rey] = self.canvas.create_rectangle(
+            c_rey*self.cuadrado, f_rey*self.cuadrado,
+            (c_rey+1)*self.cuadrado, (f_rey+1)*self.cuadrado,
+            fill="",
+            outline="red",
+            width=3
+        )
+
+    def actualizar_jaque(self, tablero, turno):
+        """Actualiza el color de jaque según si el rey sigue amenazado."""
+        color_rival = turno
+        # Primero borramos cualquier resaltado previo
+        for id in self.resaltado_rey.values():
+            self.canvas.delete(id)
+        self.resaltado_rey.clear()
+
+        # Buscamos si el rey está en jaque
+        f_rey = c_rey = None
+        for fila, fila_piezas in enumerate(tablero):
+            for col, pieza in enumerate(fila_piezas):
+                if pieza.startswith("K") and pieza.endswith(color_rival):
+                    f_rey, c_rey = fila, col
+                    break
+            if f_rey is not None:
+                break
+        if f_rey is None:
+            return
+            
+
+
+        # Verificamos si está en jaque
+        jaque = False
+        for fila_o, fila_piezas in enumerate(tablero):
+            for col_o, pieza in enumerate(fila_piezas):
+                if pieza != "--" and not pieza.endswith(color_rival):
+                    clase = {
+                        "T": Torre, "A": Alfil, "C": Caballo,
+                        "Q": Reina, "K": Rey, "P": Peon
+                    }[pieza[0]](pieza[1])
+                    if clase.movimiento_valido(fila_o, col_o, f_rey, c_rey, tablero):
+                        jaque = True
+                        break
+            if jaque:
+                break
+
+        if jaque:
+            self.colorear_jaque(f_rey, c_rey)
 
 
 
@@ -262,6 +313,7 @@ class Juego:
             # Verifica si el movimiento actual pone en jaque al rival
             color_rival = "N" if self.turno == "B" else "B"
 
+
             if self.es_jaque(tablero=self.estructura.piezas, turno=color_rival):
                 if not self.puede_escapar(color_rival, self.estructura.piezas):
                     self.pieza_seleccionada = None
@@ -271,6 +323,7 @@ class Juego:
             else:
                 if not self.puede_escapar(color_rival, self.estructura.piezas):
                     print ("Rey ahogado")
+            self.tablero.actualizar_jaque(self.estructura.piezas, color_rival)
 
             #Cambiar el turno
             self.turno = "N" if self.turno == "B" else "B"
