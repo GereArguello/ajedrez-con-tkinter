@@ -106,6 +106,7 @@ class Tablero:
         self.ventana = ventana
         self.piezas = piezas
         self.ids = {}
+        self.resaltados = {}
         self.canvas = tk.Canvas(ventana, width=cuadrado*8, height=cuadrado*8)
         self.canvas.pack()
         self.dibujar_casillas()
@@ -119,7 +120,7 @@ class Tablero:
                 self.canvas.create_rectangle(
                     i*self.cuadrado, j*self.cuadrado,
                     (i+1)*self.cuadrado, (j+1)*self.cuadrado,
-                    fill=color
+                    fill=color,outline=""
                 )
 
     def cargar_imagenes(self):
@@ -141,6 +142,22 @@ class Tablero:
                         c*self.cuadrado, f*self.cuadrado, #Eje X e Y
                         image=self.imagenes[pieza], anchor="nw" #Accedemos a las claves de imagenes
                     )
+
+    def colorear_opciones(self, movimiento_valido):
+        for (fila, col), id in self.resaltados.items():
+            self.canvas.delete(id)
+        self.resaltados.clear()
+
+        for fila, col in movimiento_valido:
+            self.resaltados[(fila,col)] = self.canvas.create_rectangle(
+                col*self.cuadrado, fila*self.cuadrado,
+                (col+1)*self.cuadrado,(fila+1)*self.cuadrado,
+                fill="yellow",
+                stipple="gray25",
+                outline="orange"
+            )
+
+
 
     def mover_pieza(self, f_o, c_o, f_d, c_d, pieza):
         
@@ -180,8 +197,31 @@ class Juego:
 
     def seleccionar(self, fila, col):
         pieza = self.estructura.piezas[fila][col]
-        if pieza != "--" and pieza.endswith(self.turno): #Verificamos que la pieza coincida con el turno
+        if pieza != "--" and pieza.endswith(self.turno):
+            
+            clase = {
+                "T": Torre, "A": Alfil, "C": Caballo,
+                "Q": Reina, "K": Rey, "P": Peon
+            }[pieza[0]](pieza[1])
+
             self.pieza_seleccionada = (fila, col)
+
+            # Calcular todos los movimientos válidos
+            self.movimientos_validos = []
+            for fila_d in range(8):
+                for col_d in range(8):
+                    destino = self.estructura.piezas[fila_d][col_d]
+                    # Ignorar casillas con piezas propias
+                    if destino != "--" and destino.endswith(self.turno):
+                        continue
+                    # Verificar si el movimiento es válido
+                    if clase.movimiento_valido(fila, col, fila_d, col_d, self.estructura.piezas):
+                        self.movimientos_validos.append((fila_d, col_d))
+
+            # Llamar a la función visual para colorear opciones
+
+            self.tablero.colorear_opciones(self.movimientos_validos)
+
             print(f"Pieza seleccionada: {pieza} ({fila},{col})")
 
     def mover(self, fila_d, col_d):
@@ -197,6 +237,7 @@ class Juego:
         pieza_destino = self.estructura.piezas[fila_d][col_d]
 
         if pieza_destino != "--" and pieza_destino.endswith(self.turno):
+            self.tablero.colorear_opciones([])
             print("No podés moverte sobre una pieza aliada.")
             self.pieza_seleccionada = None
             return
@@ -209,12 +250,14 @@ class Juego:
             copia_tablero[f_o][c_o] = "--"
 
             if self.es_jaque(tablero=copia_tablero, turno=self.turno):
+                self.tablero.colorear_opciones([])
                 self.pieza_seleccionada = None
                 print("Movimiento ilegal: dejaría al rey en jaque.")
                 return
 
             self.capturar_pieza(fila_d, col_d)  #Captura antes de mover
             self.aplicar_movimiento(f_o, c_o, fila_d, col_d, pieza)
+            self.tablero.colorear_opciones([])
 
             # Verifica si el movimiento actual pone en jaque al rival
             color_rival = "N" if self.turno == "B" else "B"
