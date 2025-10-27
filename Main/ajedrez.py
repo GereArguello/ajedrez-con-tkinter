@@ -96,19 +96,59 @@ class Peon(Pieza):
             return True
         return False
 
+class Interfaz:
+    def __init__(self):
+        self.ventana = tk.Tk()
+        self.ventana.title("Ajedrez")
+        self.ventana.geometry("880x880")
+        self.ventana.resizable(0,0)
+
+        carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Piezas")
+        negras = os.path.join(carpeta, "PN.png")
+        blancas = os.path.join(carpeta, "PB.png")
+
+        self.img_blancas = tk.PhotoImage(file=blancas)
+        factor = max(1, self.img_blancas.width() // 96)
+        self.img_blancas = self.img_blancas.subsample(factor, factor)
+
+        self.img_negras = tk.PhotoImage(file=negras)
+        self.img_negras = self.img_negras.subsample(factor, factor)
+
+        self.main_frame = tk.Frame(self.ventana, bg="#ffd0d0")
+        self.main_frame.pack(fill="both",expand=True)
+
+        self.label_turno = tk.Label(self.main_frame,text="Turno de: ", image= self.img_blancas, compound="right",font=("Arial", 54), bg="#ffd0d0",
+                 anchor="w")
+        self.label_turno.pack(side="top", fill="x",padx= 100)
+
+        self.frame_tablero = tk.Frame(self.main_frame)
+        self.frame_tablero.pack(side="left", anchor="s")
+
+        self.tablero = Tablero(self.frame_tablero, 96, piezas=Posiciones().piezas)
+
+        self.juego = (Juego(self.tablero, self))
+
+    def actualizar_turno(self, color):
+        if color == "B":
+            self.label_turno.config(text="Turno de:", image=self.img_blancas)
+        else:
+            self.label_turno.config(text="Turno de:", image=self.img_negras)
+
+    def run(self):
+            self.ventana.mainloop()
 
 # --------------------------------------------------------------------
 # TABLERO VISUAL (TKINTER)
 # --------------------------------------------------------------------
 class Tablero:
-    def __init__(self, ventana, cuadrado, piezas):
+    def __init__(self, frame, cuadrado, piezas):
         self.cuadrado = cuadrado
-        self.ventana = ventana
+        self.frame = frame
         self.piezas = piezas
         self.ids = {}
         self.resaltados = {}
         self.resaltado_rey = {}
-        self.canvas = tk.Canvas(ventana, width=cuadrado*8, height=cuadrado*8)
+        self.canvas = tk.Canvas(frame, width=cuadrado*8, height=cuadrado*8)
         self.canvas.pack()
         self.dibujar_casillas()
         self.cargar_imagenes()
@@ -225,21 +265,17 @@ class Tablero:
 # LÓGICA DEL JUEGO
 # --------------------------------------------------------------------
 class Juego:
-    def __init__(self, cuadrado):
-        self.cuadrado = cuadrado
+    def __init__(self, tablero_visual, interfaz):
+        self.tablero = tablero_visual
+        self.interfaz = interfaz
         self.estructura = Posiciones()
         self.turno = "B"
         self.pieza_seleccionada = None
-
-        self.ventana = tk.Tk()
-        self.ventana.title("Ajedrez")
-        self.ventana.resizable(0, 0)
-        self.tablero = Tablero(self.ventana, cuadrado, self.estructura.piezas)
         self.tablero.canvas.bind("<Button-1>", self.clic)
 
     def clic(self, evento):
-        fila = evento.y // self.cuadrado
-        col = evento.x // self.cuadrado
+        fila = evento.y // self.tablero.cuadrado
+        col = evento.x // self.tablero.cuadrado
         print(f"({fila},{col})")
         if self.pieza_seleccionada is None:
             self.seleccionar(fila, col)
@@ -327,6 +363,7 @@ class Juego:
 
             #Cambiar el turno
             self.turno = "N" if self.turno == "B" else "B"
+            self.interfaz.actualizar_turno(self.turno)
 
 
         else:
@@ -412,13 +449,11 @@ class Juego:
 
 
 
-    def run(self):
-            self.ventana.mainloop()
 
 
 # --------------------------------------------------------------------
 # EJECUCIÓN
 # --------------------------------------------------------------------
 if __name__ == "__main__":
-    juego = Juego(96)
+    juego = Interfaz()
     juego.run()
