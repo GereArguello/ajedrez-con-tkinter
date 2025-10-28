@@ -100,9 +100,12 @@ class Interfaz:
     def __init__(self):
         self.ventana = tk.Tk()
         self.ventana.title("Ajedrez")
-        self.ventana.geometry("880x880")
+        self.ventana.geometry("880x880+200+100")
         self.ventana.resizable(0,0)
 
+
+
+        # -- Imagenes --
         carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Piezas")
         negras = os.path.join(carpeta, "PN.png")
         blancas = os.path.join(carpeta, "PB.png")
@@ -114,25 +117,68 @@ class Interfaz:
         self.img_negras = tk.PhotoImage(file=negras)
         self.img_negras = self.img_negras.subsample(factor, factor)
 
+        # -- Frames main --
         self.main_frame = tk.Frame(self.ventana, bg="#ffd0d0")
         self.main_frame.pack(fill="both",expand=True)
 
-        self.label_turno = tk.Label(self.main_frame,text="Turno de: ", image= self.img_blancas, compound="right",font=("Arial", 54), bg="#ffd0d0",
-                 anchor="w")
-        self.label_turno.pack(side="top", fill="x",padx= 100)
 
+        # -- Frame superior --
+        self.top_frame = tk.Frame(self.main_frame, bg="#ffd0d0")
+        self.top_frame.pack(side="top", fill="x")
+
+        self.label_turno = tk.Label(self.top_frame,text="Turno de:  ", image= self.img_blancas, compound="right",font=("Arial", 54), bg="#ffd0d0",
+                 anchor="w")
+        self.label_turno.pack(side="left", fill="x",padx= 100)
+
+        self.boton_reinicio = tk.Button(self.top_frame,bg="#ff6b6b", text="Reiniciar",font=("Arial",12,"bold"), width=10,height=5, command=self.reiniciar_tablero)
+        self.boton_reinicio.pack(side="right", anchor="e")
+        self.boton_reinicio.config(relief="flat") 
+        
+
+        # -- Frame tablero --
         self.frame_tablero = tk.Frame(self.main_frame)
         self.frame_tablero.pack(side="left", anchor="s")
 
+        # -- Tablero Visual y Lógico --
         self.tablero = Tablero(self.frame_tablero, 96, piezas=Posiciones().piezas)
-
         self.juego = (Juego(self.tablero, self))
 
     def actualizar_turno(self, color):
         if color == "B":
-            self.label_turno.config(text="Turno de:", image=self.img_blancas)
+            self.label_turno.config(text="Turno de:  ", image=self.img_blancas)
         else:
-            self.label_turno.config(text="Turno de:", image=self.img_negras)
+            self.label_turno.config(text="Turno de:  ", image=self.img_negras)
+
+    def reiniciar_tablero(self):
+        print("Botón clickeado")
+
+        # Borrar imágenes viejas
+        for id in self.tablero.ids.values():
+            self.tablero.canvas.delete(id)
+        self.tablero.ids.clear()
+
+        # Borrar resaltados
+        for id in self.tablero.resaltados.values():
+            self.tablero.canvas.delete(id)
+        self.tablero.resaltados.clear()
+        for id in self.tablero.resaltado_rey.values():
+            self.tablero.canvas.delete(id)
+        self.tablero.resaltado_rey.clear()
+
+        # Restaurar posiciones iniciales
+        self.tablero.piezas = copy.deepcopy(Posiciones().piezas)
+
+        # Resetear atributos del juego
+        self.juego.estructura = Posiciones()
+        self.juego.turno = "B"
+        self.juego.pieza_seleccionada = None
+        self.juego.movimientos_validos = []
+
+        # Actualizar indicador de turno
+        self.actualizar_turno(self.juego.turno)
+
+        # Redibujar piezas
+        self.tablero.mostrar_piezas()
 
     def run(self):
             self.ventana.mainloop()
@@ -274,6 +320,7 @@ class Juego:
         self.tablero.canvas.bind("<Button-1>", self.clic)
 
     def clic(self, evento):
+
         fila = evento.y // self.tablero.cuadrado
         col = evento.x // self.tablero.cuadrado
         print(f"({fila},{col})")
