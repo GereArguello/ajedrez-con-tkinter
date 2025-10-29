@@ -100,7 +100,7 @@ class Interfaz:
     def __init__(self):
         self.ventana = tk.Tk()
         self.ventana.title("Ajedrez")
-        self.ventana.geometry("880x880+200+100")
+        self.ventana.geometry("770x920+100+50")
         self.ventana.resizable(0,0)
 
 
@@ -112,32 +112,61 @@ class Interfaz:
 
         self.img_blancas = tk.PhotoImage(file=blancas)
         factor = max(1, self.img_blancas.width() // 96)
-        self.img_blancas = self.img_blancas.subsample(factor, factor)
+        self.img_blancas = self.img_blancas.subsample(int(factor*1.5),int(factor*1.5))
 
         self.img_negras = tk.PhotoImage(file=negras)
-        self.img_negras = self.img_negras.subsample(factor, factor)
+        self.img_negras = self.img_negras.subsample(int(factor*1.5),int(factor*1.5))
 
         # -- Frames main --
-        self.main_frame = tk.Frame(self.ventana, bg="#ffd0d0")
-        self.main_frame.pack(fill="both",expand=True)
+        self.main_frame = tk.Frame(self.ventana, bg="#bebebe")
+        self.main_frame.pack(fill="both")
 
 
-        # -- Frame superior --
-        self.top_frame = tk.Frame(self.main_frame, bg="#ffd0d0")
+        # -- Contenedor central que agrupa las franjas y el tablero --
+        self.centro_frame = tk.Frame(self.main_frame, bg="#347F9C")
+        self.centro_frame.pack(expand=True, fill="both")
+
+        # -- Franja superior --
+        self.top_frame = tk.Frame(self.centro_frame, bg="#347F9C", height=70)
         self.top_frame.pack(side="top", fill="x")
 
-        self.label_turno = tk.Label(self.top_frame,text="Turno de:  ", image= self.img_blancas, compound="right",font=("Arial", 54), bg="#ffd0d0",
-                 anchor="w")
-        self.label_turno.pack(side="left", fill="x",padx= 100)
+        # Configurar columnas para centrar el label
+        self.top_frame.columnconfigure(0, weight=1)  # botón izquierda
+        self.top_frame.columnconfigure(1, weight=2)  # label centrado
+        self.top_frame.columnconfigure(2, weight=1)  # cronómetro derecha
 
-        self.boton_reinicio = tk.Button(self.top_frame,bg="#ff6b6b", text="Reiniciar",font=("Arial",12,"bold"), width=10,height=5, command=self.reiniciar_tablero)
-        self.boton_reinicio.pack(side="right", anchor="e")
-        self.boton_reinicio.config(relief="flat") 
-        
+        # Botón a la izquierda
+        self.boton_reinicio = tk.Button(
+            self.top_frame, bg="#ff6b6b", text="Reiniciar",
+            font=("Arial", 12, "bold"), width=9, height=3, bd=2,
+            command=self.reiniciar_tablero, relief="solid"
+        )
+        self.boton_reinicio.grid(row=0, column=0, sticky="w")
+        self.boton_reinicio.config(highlightbackground="black", highlightthickness=2)
 
-        # -- Frame tablero --
-        self.frame_tablero = tk.Frame(self.main_frame)
-        self.frame_tablero.pack(side="left", anchor="s")
+        # Label centrado
+        self.label_turno = tk.Label(
+            self.top_frame, text="Turno de:", image=self.img_blancas,
+            compound="right", font=("Arial", 24), bg="#347F9C"
+        )
+        self.label_turno.grid(row=0, column=1,padx=(0,70))
+
+        # Cronómetro a la derecha
+
+        # -- Contenedor del tablero (centrado) --
+        self.frame_tablero = tk.Frame(
+            self.centro_frame, 
+            bg="#bebebe",        # color interno del frame
+            bd=2,                # grosor del borde
+            relief="solid",      # estilo de borde
+            highlightbackground="black",  # color del borde en algunos sistemas
+            highlightthickness=2          # grosor del borde visible
+        )
+        self.frame_tablero.pack(side="top")
+
+        # -- Franja inferior simétrica --
+        self.bottom_frame = tk.Frame(self.centro_frame, bg="#347F9C", height=75)
+        self.bottom_frame.pack(side="bottom", fill="x")
 
         # -- Tablero Visual y Lógico --
         self.tablero = Tablero(self.frame_tablero, 96, piezas=Posiciones().piezas)
@@ -145,9 +174,9 @@ class Interfaz:
 
     def actualizar_turno(self, color):
         if color == "B":
-            self.label_turno.config(text="Turno de:  ", image=self.img_blancas)
+            self.label_turno.config(text="Turno de:", image=self.img_blancas)
         else:
-            self.label_turno.config(text="Turno de:  ", image=self.img_negras)
+            self.label_turno.config(text="Turno de:", image=self.img_negras)
 
     def reiniciar_tablero(self):
         print("Botón clickeado")
@@ -172,6 +201,7 @@ class Interfaz:
         self.juego.estructura = Posiciones()
         self.juego.turno = "B"
         self.juego.pieza_seleccionada = None
+        self.juego.piezas_eliminadas.clear()
         self.juego.movimientos_validos = []
 
         # Actualizar indicador de turno
@@ -194,7 +224,7 @@ class Tablero:
         self.ids = {}
         self.resaltados = {}
         self.resaltado_rey = {}
-        self.canvas = tk.Canvas(frame, width=cuadrado*8, height=cuadrado*8)
+        self.canvas = tk.Canvas(frame, width=cuadrado*8, height=cuadrado*8, highlightthickness=0)
         self.canvas.pack()
         self.dibujar_casillas()
         self.cargar_imagenes()
@@ -317,6 +347,7 @@ class Juego:
         self.estructura = Posiciones()
         self.turno = "B"
         self.pieza_seleccionada = None
+        self.piezas_eliminadas = []
         self.tablero.canvas.bind("<Button-1>", self.clic)
 
     def clic(self, evento):
@@ -424,6 +455,9 @@ class Juego:
     def capturar_pieza(self, fila, col):
         pieza_objetivo = self.estructura.piezas[fila][col]
         if pieza_objetivo != "--" and not pieza_objetivo.endswith(self.turno):
+            print (f"Pieza eliminada = {pieza_objetivo}")
+            self.piezas_eliminadas.append(pieza_objetivo)
+            print(f"Piezas eliminadas: {self.piezas_eliminadas}")
             #  Borrar la imagen visual de la pieza capturada
             if (fila, col) in self.tablero.ids:
                 self.tablero.canvas.delete(self.tablero.ids[(fila, col)])
