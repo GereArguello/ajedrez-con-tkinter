@@ -96,6 +96,8 @@ class Peon(Pieza):
             return True
         return False
 
+# -- INTERFAZ COMPLETA -- 
+
 class Interfaz:
     def __init__(self):
         self.ventana = tk.Tk()
@@ -212,6 +214,70 @@ class Interfaz:
 
     def run(self):
             self.ventana.mainloop()
+
+class Pestaña_Promoción:
+    def __init__(self, interfaz, color_peon, fila, col):
+        self.interfaz = interfaz
+        self.color = color_peon
+        self.fila = fila
+        self.col = col
+        self.ventana = tk.Toplevel()
+        self.ventana.resizable(0,0)
+        self.ventana.title("Promoción de Peón")
+
+        # Frame principal que contiene todo
+        self.Frame_principal = tk.Frame(self.ventana, bg= "#ffe6de" )
+        self.Frame_principal.pack()
+
+        # Franja superior con label
+        self.Frame_label = tk.Frame(self.Frame_principal, bg="#347F9C", height=50)
+        self.Frame_label.pack(side="top", fill="x")
+        self.Label_mensaje = tk.Label(
+            self.Frame_label,
+            text="Selecciona la pieza que quieras revivir",
+            font=("Arial", 12, "bold"),
+            bg="#347F9C",
+            fg="white"
+        )
+        self.Label_mensaje.pack()
+
+        # Frame del mini tablero
+        self.Frame_tablero = tk.Frame(self.Frame_principal, bg="#ffe6de")
+        self.Frame_tablero.pack(side="left")
+        self.canvas = tk.Canvas(self.Frame_tablero, width=64*3, height=64*3, bg="#ffe6de", highlightthickness=0)
+        self.canvas.pack()
+
+        # Dibujar mini tablero
+        self.mini_tablero()
+
+        # Botón de confirmar (derecha)
+        self.boton_confirmar = tk.Button(
+            self.Frame_principal,
+            text="Confirmar",
+            font=("Arial", 12, "bold"),
+            bg="#6FC272",
+            fg="white",
+            width=10,
+            height=9,  # altura en líneas de texto para que sea más largo
+            command=None # tu función
+        )
+        self.boton_confirmar.pack(side="right")
+
+
+
+    def mini_tablero(self):
+        for i in range(3):
+            for j in range (3):
+                color = "#ffe6de" if (i+j)%2==0 else "#87bac7"
+                self.canvas.create_rectangle(
+                    i*64, j*64,
+                    (i+1)*64, (j+1)*64,
+                    fill=color,outline=""
+                )
+
+
+
+
 
 # --------------------------------------------------------------------
 # TABLERO VISUAL (TKINTER)
@@ -423,6 +489,10 @@ class Juego:
             self.capturar_pieza(fila_d, col_d)  #Captura antes de mover
             self.aplicar_movimiento(f_o, c_o, fila_d, col_d, pieza)
             self.tablero.colorear_opciones([])
+            
+            #Abrimos pestaña emergente
+            if pieza[0] == "P" and (fila_d == 0 or fila_d == 7):
+                Pestaña_Promoción(self.interfaz, self.turno, fila_d, col_d)
 
             # Verifica si el movimiento actual pone en jaque al rival
             color_rival = "N" if self.turno == "B" else "B"
