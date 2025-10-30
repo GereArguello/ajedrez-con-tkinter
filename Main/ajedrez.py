@@ -2,6 +2,21 @@ import tkinter as tk
 import os
 import copy
 
+def cargar_imagenes(carpeta="Piezas", tamanio_base=64):
+    ruta_carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), carpeta)
+    nombres = ["AB","AN","CB","CN","KB","KN","PB","PN","QB","QN","TB","TN"]
+    imagenes = {}
+
+    for nombre in nombres:
+        ruta = os.path.join(ruta_carpeta, nombre + ".png")
+        if os.path.exists(ruta):
+            img = tk.PhotoImage(file=ruta)
+            factor = max(1, img.width() // tamanio_base)
+            imagenes[nombre] = img.subsample(factor, factor)
+
+    return imagenes
+
+
 # --------------------------------------------------------------------
 # ESTRUCTURA INICIAL DEL TABLERO
 # --------------------------------------------------------------------
@@ -18,6 +33,21 @@ class Posiciones:
             ["TB","CB","AB","QB","KB","AB","CB","TB"],
         ]
 
+
+    @staticmethod
+    def obtener_opciones_promocion(color):
+        if color == "B":  # blancas
+            return [
+                ["--", "--", "--"],
+                ["--", "KB", "--"],
+                ["TB", "CB", "AB"],
+            ]
+        else:  # negras
+            return [
+                ["--", "--", "--"],
+                ["--", "KN", "--"],
+                ["TN", "CN", "AN"],
+            ]
 
 # --------------------------------------------------------------------
 # CLASES DE PIEZAS Y VALIDACIÓN DE MOVIMIENTOS
@@ -108,16 +138,11 @@ class Interfaz:
 
 
         # -- Imagenes --
-        carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Piezas")
-        negras = os.path.join(carpeta, "PN.png")
-        blancas = os.path.join(carpeta, "PB.png")
 
-        self.img_blancas = tk.PhotoImage(file=blancas)
-        factor = max(1, self.img_blancas.width() // 96)
-        self.img_blancas = self.img_blancas.subsample(int(factor*1.5),int(factor*1.5))
+        imagenes = cargar_imagenes()
+        self.img_blancas = imagenes["PB"]
+        self.img_negras = imagenes["PN"]
 
-        self.img_negras = tk.PhotoImage(file=negras)
-        self.img_negras = self.img_negras.subsample(int(factor*1.5),int(factor*1.5))
 
         # -- Frames main --
         self.main_frame = tk.Frame(self.ventana, bg="#bebebe")
@@ -221,9 +246,16 @@ class Pestaña_Promoción:
         self.color = color_peon
         self.fila = fila
         self.col = col
+
+        #Con esto obtenemos el mini tablero lógico
+        self.opciones = Posiciones.obtener_opciones_promocion(self.color)
+        self.imagenes = cargar_imagenes()
+        self.ids = {}
+
         self.ventana = tk.Toplevel()
         self.ventana.resizable(0,0)
         self.ventana.title("Promoción de Peón")
+
 
         # Frame principal que contiene todo
         self.Frame_principal = tk.Frame(self.ventana, bg= "#ffe6de" )
@@ -246,9 +278,10 @@ class Pestaña_Promoción:
         self.Frame_tablero.pack(side="left")
         self.canvas = tk.Canvas(self.Frame_tablero, width=64*3, height=64*3, bg="#ffe6de", highlightthickness=0)
         self.canvas.pack()
+        
+        #Guardar referencia de imagenes
+        self.canvas.imagenes = self.imagenes
 
-        # Dibujar mini tablero
-        self.mini_tablero()
 
         # Botón de confirmar (derecha)
         self.boton_confirmar = tk.Button(
@@ -263,17 +296,30 @@ class Pestaña_Promoción:
         )
         self.boton_confirmar.pack(side="right")
 
+        # Dibujar mini tablero
+        self.mini_tablero()
+        self.mini_piezas()
 
 
     def mini_tablero(self):
-        for i in range(3):
-            for j in range (3):
-                color = "#ffe6de" if (i+j)%2==0 else "#87bac7"
+        for fila in range(3):
+            for col in range (3):
+                color = "#ffe6de" if (fila + col)%2==0 else "#87bac7"
                 self.canvas.create_rectangle(
-                    i*64, j*64,
-                    (i+1)*64, (j+1)*64,
+                    col*64, fila*64,
+                    (col+1)*64, (fila+1)*64,
                     fill=color,outline=""
                 )
+
+    def mini_piezas(self):
+        for row, fila in enumerate(self.opciones):
+            for col, pieza in enumerate(fila):
+                if pieza != "--":
+                    x = col*64 + 32
+                    y = row*64 + 32
+                    self.ids[row,col]= self.canvas.create_image(x, y, image=self.imagenes[pieza], anchor="center")
+        for k,v in self.imagenes.items():
+            print(k, type(v))
 
 
 
@@ -287,13 +333,13 @@ class Tablero:
         self.cuadrado = cuadrado
         self.frame = frame
         self.piezas = piezas
+        self.imagenes = cargar_imagenes(carpeta="Piezas", tamanio_base= cuadrado)
         self.ids = {}
         self.resaltados = {}
         self.resaltado_rey = {}
         self.canvas = tk.Canvas(frame, width=cuadrado*8, height=cuadrado*8, highlightthickness=0)
         self.canvas.pack()
         self.dibujar_casillas()
-        self.cargar_imagenes()
         self.mostrar_piezas()
 
     def dibujar_casillas(self):
@@ -306,16 +352,7 @@ class Tablero:
                     fill=color,outline=""
                 )
 
-    def cargar_imagenes(self):
-        carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Piezas") #Ruta absoluta, se vería algo así C:\Users\usuario\Desktop\Ajedrez\Main\Piezas
-        self.imagenes = {}
-        nombres = ["AB","AN","CB","CN","KB","KN","PB","PN","QB","QN","TB","TN"] #Mismos códigos que los archivos '.png'
-        for nombre in nombres:
-            ruta = os.path.join(carpeta, nombre + ".png")
-            if os.path.exists(ruta):
-                img = tk.PhotoImage(file=ruta)
-                factor = max(1, img.width() // self.cuadrado) #Fórmula para decidir cuánto reducir la imagen
-                self.imagenes[nombre] = img.subsample(factor, factor)
+
 
     def mostrar_piezas(self):
         for f, fila in enumerate(self.piezas): #Iteramos lista por lista
