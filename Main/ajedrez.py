@@ -16,6 +16,11 @@ def cargar_imagenes(carpeta="Piezas", tamanio_base=64):
 
     return imagenes
 
+def obtener_fila_columna(evento, tam_cuadro):
+    fila = evento.y // tam_cuadro
+    col = evento.x // tam_cuadro
+    return fila, col
+
 
 # --------------------------------------------------------------------
 # ESTRUCTURA INICIAL DEL TABLERO
@@ -38,15 +43,15 @@ class Posiciones:
     def obtener_opciones_promocion(color):
         if color == "B":  # blancas
             return [
-                ["--", "--", "--"],
-                ["--", "KB", "--"],
-                ["TB", "CB", "AB"],
+                ["--", "AB", "--"],
+                ["QB", "--", "CB"],
+                ["--", "TB", "--"],
             ]
         else:  # negras
             return [
-                ["--", "--", "--"],
-                ["--", "KN", "--"],
-                ["TN", "CN", "AN"],
+                ["--", "AN", "--"],
+                ["QN", "--", "CN"],
+                ["--", "TN", "--"],
             ]
 
 # --------------------------------------------------------------------
@@ -246,11 +251,15 @@ class Pestaña_Promoción:
         self.color = color_peon
         self.fila = fila
         self.col = col
+        self.pieza_seleccionada = None
+
 
         #Con esto obtenemos el mini tablero lógico
         self.opciones = Posiciones.obtener_opciones_promocion(self.color)
+
         self.imagenes = cargar_imagenes()
         self.ids = {}
+        self.ids_color = {}
 
         self.ventana = tk.Toplevel()
         self.ventana.resizable(0,0)
@@ -266,7 +275,7 @@ class Pestaña_Promoción:
         self.Frame_label.pack(side="top", fill="x")
         self.Label_mensaje = tk.Label(
             self.Frame_label,
-            text="Selecciona la pieza que quieras revivir",
+            text="Selecciona la pieza que quieras invocar",
             font=("Arial", 12, "bold"),
             bg="#347F9C",
             fg="white"
@@ -276,9 +285,11 @@ class Pestaña_Promoción:
         # Frame del mini tablero
         self.Frame_tablero = tk.Frame(self.Frame_principal, bg="#ffe6de")
         self.Frame_tablero.pack(side="left")
+
         self.canvas = tk.Canvas(self.Frame_tablero, width=64*3, height=64*3, bg="#ffe6de", highlightthickness=0)
         self.canvas.pack()
-        
+        self.canvas.bind("<Button-1>", self.clic)
+
         #Guardar referencia de imagenes
         self.canvas.imagenes = self.imagenes
 
@@ -290,7 +301,7 @@ class Pestaña_Promoción:
             font=("Arial", 12, "bold"),
             bg="#6FC272",
             fg="white",
-            width=10,
+            width=11,
             height=9,  # altura en líneas de texto para que sea más largo
             command=None # tu función
         )
@@ -318,11 +329,35 @@ class Pestaña_Promoción:
                     x = col*64 + 32
                     y = row*64 + 32
                     self.ids[row,col]= self.canvas.create_image(x, y, image=self.imagenes[pieza], anchor="center")
-        for k,v in self.imagenes.items():
-            print(k, type(v))
 
+    def clic(self,evento):
+        fila, col = obtener_fila_columna(evento, 64)
+        self.seleccionar(fila,col)
+        print(f"Clic en {fila, col}")
 
+    def seleccionar(self, fila, col):
+        pieza = self.opciones[fila][col]
+        if pieza != "--":
+            self.pieza_seleccionada = (fila, col)
+            print(f"Pieza seleccionada: {pieza}")
+            self.colorear_opcion(fila, col)
+            return fila, col
+        else:
+            print("Casilla vacía")
 
+    def colorear_opcion(self,fila,col):
+        for id in self.ids_color.values():
+            self.canvas.delete(id)
+        self.ids_color.clear()
+
+        self.ids_color[fila,col] = self.canvas.create_rectangle(
+            col*64, fila*64,
+            (col+1)*64, (fila+1)*64,
+            fill="",
+            outline="yellow",
+            width=3
+        )
+        
 
 
 # --------------------------------------------------------------------
@@ -455,8 +490,7 @@ class Juego:
 
     def clic(self, evento):
 
-        fila = evento.y // self.tablero.cuadrado
-        col = evento.x // self.tablero.cuadrado
+        fila, col = obtener_fila_columna(evento, self.tablero.cuadrado)
         print(f"({fila},{col})")
         if self.pieza_seleccionada is None:
             self.seleccionar(fila, col)
