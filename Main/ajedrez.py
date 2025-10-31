@@ -270,7 +270,7 @@ class Pestaña_Promoción:
 
         self.ventana = tk.Toplevel()
         self.ventana.resizable(0,0)
-        self.ventana.title("Promoción de Peón")
+        self.ventana.title("Promoción")
 
 
         # Frame principal que contiene todo
@@ -310,7 +310,7 @@ class Pestaña_Promoción:
             fg="white",
             width=11,
             height=9,  # altura en líneas de texto para que sea más largo
-            command=None # tu función
+            command=self.invocar_pieza # tu función
         )
         self.boton_confirmar.pack(side="right")
 
@@ -364,7 +364,13 @@ class Pestaña_Promoción:
             outline="yellow",
             width=3
         )
-        
+    
+    def invocar_pieza(self):
+        if self.pieza_seleccionada is not None:
+            fila, col = self.pieza_seleccionada
+            self.pieza_elegida = self.opciones[fila][col]
+            print(f"Pieza: {self.pieza_elegida}")
+            self.ventana.destroy()
 
 
 # --------------------------------------------------------------------
@@ -457,10 +463,7 @@ class Tablero:
             for col_o, pieza in enumerate(fila_piezas):
                 if pieza != "--" and not pieza.endswith(color_rival):
                     clase = definir_clase(pieza)
-                    # clase = {
-                    #     "T": Torre, "A": Alfil, "C": Caballo,
-                    #     "Q": Reina, "K": Rey, "P": Peon
-                    # }[pieza[0]](pieza[1])
+
                     if clase.movimiento_valido(fila_o, col_o, f_rey, c_rey, tablero):
                         jaque = True
                         break
@@ -510,10 +513,7 @@ class Juego:
         if pieza != "--" and pieza.endswith(self.turno):
             
             clase = definir_clase(pieza)
-            # clase = {
-            #     "T": Torre, "A": Alfil, "C": Caballo,
-            #     "Q": Reina, "K": Rey, "P": Peon
-            # }[pieza[0]](pieza[1])
+
 
             self.pieza_seleccionada = (fila, col)
 
@@ -540,10 +540,7 @@ class Juego:
         pieza = self.estructura.piezas[f_o][c_o]
 
         clase = definir_clase(pieza)
-        # color = pieza[-1] #Accede a la última letra de pieza: "B" o "N"
-        # clase = {
-        #     "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
-        # }[pieza[0]](color) #Le asignamos a la pieza la clase y color correspondiente
+
 
         pieza_destino = self.estructura.piezas[fila_d][col_d]
 
@@ -572,7 +569,14 @@ class Juego:
             
             #Abrimos pestaña emergente
             if pieza[0] == "P" and (fila_d == 0 or fila_d == 7):
-                Pestaña_Promoción(self.interfaz, self.turno, fila_d, col_d)
+                ventana = Pestaña_Promoción(self.interfaz, self.turno, fila_d, col_d)
+                ventana.ventana.grab_set()
+                ventana.ventana.wait_window()
+                pieza = ventana.pieza_elegida
+                print (f"Ahora la pieza es {pieza}")
+                self.estructura.piezas[fila_d][col_d] = pieza
+                self.tablero.mover_pieza(fila_d,col_d, fila_d, col_d, pieza)
+
 
             # Verifica si el movimiento actual pone en jaque al rival
             color_rival = "N" if self.turno == "B" else "B"
@@ -642,9 +646,7 @@ class Juego:
             for col_o, pieza in enumerate(i):
                 if pieza != "--" and not pieza.endswith(turno):
                     clase = definir_clase(pieza)
-                    # clase = {
-                    #     "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
-                    # }[pieza[0]](pieza[1])
+
                     if clase.movimiento_valido(fila_o, col_o, fila_rey, col_rey, tablero):
                         print(f"{pieza} {fila_o} {col_o} está amenazando al rey")
                         return True
@@ -656,11 +658,7 @@ class Juego:
             for col, pieza in enumerate(fila_piezas):
                 if pieza.endswith(color_rival):
                     clase = definir_clase(pieza)
-                    # clase = {
-                    #     "T": Torre, "A": Alfil, "C": Caballo,
-                    #     "Q": Reina, "K": Rey, "P": Peon
-                    # }[pieza[0]](color_rival)
-                    
+
                     for fila_d in range(8):
                         for col_d in range(8):
                             copia_tablero = copy.deepcopy(tablero)
