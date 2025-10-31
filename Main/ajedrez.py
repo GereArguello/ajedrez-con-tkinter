@@ -151,9 +151,9 @@ class Interfaz:
 
         # -- Imagenes --
 
-        imagenes = cargar_imagenes()
-        self.img_blancas = imagenes["PB"]
-        self.img_negras = imagenes["PN"]
+        self.imagenes = cargar_imagenes()
+        self.img_blancas = self.imagenes["PB"]
+        self.img_negras = self.imagenes["PN"]
 
 
         # -- Frames main --
@@ -253,7 +253,7 @@ class Interfaz:
             self.ventana.mainloop()
 
 class Pestaña_Promoción:
-    def __init__(self, interfaz, color_peon, fila, col):
+    def __init__(self, interfaz, color_peon, fila, col, imagenes):
         self.interfaz = interfaz
         self.color = color_peon
         self.fila = fila
@@ -264,7 +264,7 @@ class Pestaña_Promoción:
         #Con esto obtenemos el mini tablero lógico
         self.opciones = Posiciones.obtener_opciones_promocion(self.color)
 
-        self.imagenes = cargar_imagenes()
+        self.imagenes = imagenes
         self.ids = {}
         self.ids_color = {}
 
@@ -569,13 +569,13 @@ class Juego:
             
             #Abrimos pestaña emergente
             if pieza[0] == "P" and (fila_d == 0 or fila_d == 7):
-                ventana = Pestaña_Promoción(self.interfaz, self.turno, fila_d, col_d)
+                ventana = Pestaña_Promoción(self.interfaz, self.turno, fila_d, col_d, imagenes= self.interfaz.imagenes)
                 ventana.ventana.grab_set()
                 ventana.ventana.wait_window()
                 pieza = ventana.pieza_elegida
                 print (f"Ahora la pieza es {pieza}")
-                self.estructura.piezas[fila_d][col_d] = pieza
-                self.tablero.mover_pieza(fila_d,col_d, fila_d, col_d, pieza)
+                self.estructura.piezas[fila_d][col_d] = pieza #Actualiza lógica
+                self.tablero.mover_pieza(fila_d,col_d, fila_d, col_d, pieza) #Actualiza la imagen
 
 
             # Verifica si el movimiento actual pone en jaque al rival
