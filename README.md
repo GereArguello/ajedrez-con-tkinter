@@ -1,21 +1,26 @@
-# Proyecto Ajedrez en Python
+# Ajedrez en Python
 
-Este proyecto es un juego de ajedrez implementado en Python utilizando **Tkinter** para la interfaz gráfica. Permite jugar partidas con todas las piezas, movimientos válidos y detección de jaque y jaque mate.
+Este proyecto es un **juego de ajedrez completo** implementado en **Python** utilizando **Tkinter** para la interfaz gráfica. Permite jugar partidas con movimientos válidos, detección de jaque y jaque mate, captura de piezas y promoción de peones mediante una ventana emergente.
 
-## Funcionalidades principales
+---
 
-- Tablero de 8x8 con casillas coloreadas.
-- Movimientos válidos para todas las piezas:
+## Características principales
+
+- **Tablero visual de 8x8** con casillas coloreadas alternadas.
+- Movimientos válidos implementados para todas las piezas:
   - Torre
   - Alfil
   - Caballo
   - Reina
   - Rey
   - Peón
-- Detección de jaque y jaque mate.
-- Captura de piezas.
-- Turnos alternados entre jugadores blanco y negro.
-- Interfaz visual usando imágenes `.png` para cada pieza.
+- **Detección de jaque y jaque mate**.
+- **Captura de piezas** y actualización del tablero lógico y visual.
+- Turnos alternados entre jugadores **blanco** y **negro**.
+- **Promoción de peones** con ventana emergente que permite elegir entre Torre, Alfil, Caballo o Reina.
+- Coloreado de opciones de movimiento y resaltado del rey en jaque.
+- Botón de **reinicio** del tablero.
+- Optimización en la carga de imágenes y manejo de ventanas emergentes.
 
 ## Estructura de archivos
 ```
@@ -28,6 +33,17 @@ Ajedrez/
 │ │ └── ...
 │ └── README.md
 ```
+
+
+## Clases principales
+
+- **Posiciones**: Define la disposición inicial de las piezas y opciones de promoción.
+- **Pieza** y sus subclases (`Torre`, `Alfil`, `Caballo`, `Reina`, `Rey`, `Peon`): Definen movimiento válido y lógica de captura.
+- **Tablero**: Representación visual y manejo de casillas y piezas.
+- **Juego**: Lógica de turnos, selección de piezas, movimientos válidos, detección de jaque y jaque mate, y promoción de peones.
+- **Interfaz**: Configuración de la ventana principal, botones, turnos y ejecución del juego.
+- **Pestaña_Promoción**: Ventana emergente para elegir pieza al promocionar un peón.
+
 
 ## Requisitos
 
