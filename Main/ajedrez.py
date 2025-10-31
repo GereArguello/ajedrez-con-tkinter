@@ -21,6 +21,13 @@ def obtener_fila_columna(evento, tam_cuadro):
     col = evento.x // tam_cuadro
     return fila, col
 
+def definir_clase(pieza):
+    clase = {
+        "T": Torre, "A": Alfil, "C": Caballo,
+        "Q": Reina, "K": Rey, "P": Peon
+    }[pieza[0]](pieza[-1])
+    return clase
+
 
 # --------------------------------------------------------------------
 # ESTRUCTURA INICIAL DEL TABLERO
@@ -449,10 +456,11 @@ class Tablero:
         for fila_o, fila_piezas in enumerate(tablero):
             for col_o, pieza in enumerate(fila_piezas):
                 if pieza != "--" and not pieza.endswith(color_rival):
-                    clase = {
-                        "T": Torre, "A": Alfil, "C": Caballo,
-                        "Q": Reina, "K": Rey, "P": Peon
-                    }[pieza[0]](pieza[1])
+                    clase = definir_clase(pieza)
+                    # clase = {
+                    #     "T": Torre, "A": Alfil, "C": Caballo,
+                    #     "Q": Reina, "K": Rey, "P": Peon
+                    # }[pieza[0]](pieza[1])
                     if clase.movimiento_valido(fila_o, col_o, f_rey, c_rey, tablero):
                         jaque = True
                         break
@@ -501,10 +509,11 @@ class Juego:
         pieza = self.estructura.piezas[fila][col]
         if pieza != "--" and pieza.endswith(self.turno):
             
-            clase = {
-                "T": Torre, "A": Alfil, "C": Caballo,
-                "Q": Reina, "K": Rey, "P": Peon
-            }[pieza[0]](pieza[1])
+            clase = definir_clase(pieza)
+            # clase = {
+            #     "T": Torre, "A": Alfil, "C": Caballo,
+            #     "Q": Reina, "K": Rey, "P": Peon
+            # }[pieza[0]](pieza[1])
 
             self.pieza_seleccionada = (fila, col)
 
@@ -530,11 +539,11 @@ class Juego:
         f_o, c_o = self.pieza_seleccionada
         pieza = self.estructura.piezas[f_o][c_o]
 
-
-        color = pieza[-1] #Accede a la última letra de pieza: "B" o "N"
-        clase = {
-            "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
-        }[pieza[0]](color) #Le asignamos a la pieza la clase y color correspondiente
+        clase = definir_clase(pieza)
+        # color = pieza[-1] #Accede a la última letra de pieza: "B" o "N"
+        # clase = {
+        #     "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
+        # }[pieza[0]](color) #Le asignamos a la pieza la clase y color correspondiente
 
         pieza_destino = self.estructura.piezas[fila_d][col_d]
 
@@ -632,9 +641,10 @@ class Juego:
         for fila_o, i in enumerate(tablero):
             for col_o, pieza in enumerate(i):
                 if pieza != "--" and not pieza.endswith(turno):
-                    clase = {
-                        "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
-                    }[pieza[0]](pieza[1])
+                    clase = definir_clase(pieza)
+                    # clase = {
+                    #     "T": Torre, "A": Alfil, "C": Caballo, "Q": Reina, "K": Rey, "P": Peon
+                    # }[pieza[0]](pieza[1])
                     if clase.movimiento_valido(fila_o, col_o, fila_rey, col_rey, tablero):
                         print(f"{pieza} {fila_o} {col_o} está amenazando al rey")
                         return True
@@ -645,10 +655,11 @@ class Juego:
         for fila, fila_piezas in enumerate(tablero):
             for col, pieza in enumerate(fila_piezas):
                 if pieza.endswith(color_rival):
-                    clase = {
-                        "T": Torre, "A": Alfil, "C": Caballo,
-                        "Q": Reina, "K": Rey, "P": Peon
-                    }[pieza[0]](color_rival)
+                    clase = definir_clase(pieza)
+                    # clase = {
+                    #     "T": Torre, "A": Alfil, "C": Caballo,
+                    #     "Q": Reina, "K": Rey, "P": Peon
+                    # }[pieza[0]](color_rival)
                     
                     for fila_d in range(8):
                         for col_d in range(8):
