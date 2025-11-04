@@ -1,6 +1,7 @@
 import tkinter as tk
 import os
 import copy
+import time
 
 def cargar_imagenes(carpeta="Piezas", tamanio_base=64):
     ruta_carpeta = os.path.join(os.path.dirname(os.path.abspath(__file__)), carpeta)
@@ -147,8 +148,11 @@ class Interfaz:
         self.ventana.geometry("770x920+100+50")
         self.ventana.resizable(0,0)
 
-
-
+        self.tiempo_blancas = 600
+        self.tiempo_negras = 600
+        self.reloj_activo = "B"
+        self.reloj_id = None
+        self.juego_iniciado = False
         # -- Imagenes --
 
         self.imagenes = cargar_imagenes()
@@ -166,13 +170,15 @@ class Interfaz:
         self.centro_frame.pack(expand=True, fill="both")
 
         # -- Franja superior --
-        self.top_frame = tk.Frame(self.centro_frame, bg="#347F9C", height=70)
+        self.top_frame = tk.Frame(self.centro_frame, bg="#347F9C", height=60)
         self.top_frame.pack(side="top", fill="x")
+        self.top_frame.pack_propagate(False)
 
         # Configurar columnas para centrar el label
-        self.top_frame.columnconfigure(0, weight=1)  # botón izquierda
-        self.top_frame.columnconfigure(1, weight=2)  # label centrado
-        self.top_frame.columnconfigure(2, weight=1)  # cronómetro derecha
+        self.top_frame.columnconfigure(0, weight=0)  # botón
+        self.top_frame.columnconfigure(1, weight=0)  # turno
+        self.top_frame.columnconfigure(2, weight=1)  # cartel (se expande)
+        self.top_frame.columnconfigure(3, weight=0)  # cronómetro
 
         # Botón a la izquierda
         self.boton_reinicio = tk.Button(
@@ -188,34 +194,137 @@ class Interfaz:
             self.top_frame, text="Turno de:", image=self.img_blancas,
             compound="right", font=("Arial", 24), bg="#347F9C"
         )
-        self.label_turno.grid(row=0, column=1,padx=(0,70))
+        self.label_turno.grid(row=0, column=1, sticky="w", padx=20)
+
+
+        self._after_id = None  # ← ID del after activo (para cancelar notificaciones previas
+        #Label notificatorio
+        self.label_cartel = tk.Label(self.top_frame, text="", bg="#00BAC7", font=("Arial", 14), height=2)
+        self.label_cartel.grid(row=0, column=2, sticky="ew", padx=5)  # se expande horizontalmente
+        self.label_cartel.config(highlightbackground="black", highlightthickness=2)
+        self.label_cartel.grid_remove()
 
         # Cronómetro a la derecha
+        self.label_cronómetro = tk.Label(self.top_frame, text="10:00",font=("Arial", 14), bg="#C0C0C0", width=8, height=3, bd=2, relief="solid")
+        self.label_cronómetro.grid(row=0, column=3, sticky="e", padx= (0,1))
 
         # -- Contenedor del tablero (centrado) --
         self.frame_tablero = tk.Frame(
             self.centro_frame, 
             bg="#bebebe",        # color interno del frame
-            bd=2,                # grosor del borde
+            bd=1,                # grosor del borde
             relief="solid",      # estilo de borde
             highlightbackground="black",  # color del borde en algunos sistemas
-            highlightthickness=2          # grosor del borde visible
+            highlightthickness=1       # grosor del borde visible
         )
         self.frame_tablero.pack(side="top")
 
         # -- Franja inferior simétrica --
-        self.bottom_frame = tk.Frame(self.centro_frame, bg="#347F9C", height=75)
+        self.bottom_frame = tk.Frame(self.centro_frame, bg="#347F9C", height=80)
         self.bottom_frame.pack(side="bottom", fill="x")
+        self.bottom_frame.pack_propagate(False)
+
+        self.bottom_frame.columnconfigure(0, weight=0)  # Izquierda
+        self.bottom_frame.columnconfigure(1, weight=1)  # Centro expansible
+        self.bottom_frame.columnconfigure(2, weight=0)  # Derecha (cronómetro)
+
+        # Cronómetro a la derecha
+        self.label_cronómetro_2 = tk.Label(self.bottom_frame, text="10:00",font=("Arial", 14), bg="#C0C0C0", width=8, height=3, bd=2, relief="solid")
+        self.label_cronómetro_2.grid(row=0, column=2, sticky="e", padx=(0,1))
 
         # -- Tablero Visual y Lógico --
         self.tablero = Tablero(self.frame_tablero, 96, piezas=Posiciones().piezas)
         self.juego = (Juego(self.tablero, self))
 
+
+
+
+
+    def mostrar_notificacion(self, mensaje):
+        """Muestra una notificación persistente hasta que se oculte manualmente."""
+        # Cancelar notificación pendiente si la hay
+        if self._after_id:
+            self.ventana.after_cancel(self._after_id)
+            self._after_id = None
+
+        self.label_cartel.config(text=mensaje)
+        self.label_cartel.grid()
+
+    def ocultar_mensaje(self):
+        """Oculta la notificación actual."""
+        if self._after_id:
+            self.ventana.after_cancel(self._after_id)
+            self._after_id = None
+
+        self.label_cartel.grid_remove()
+
+    def mostrar_temporal(self, mensaje, duracion=2000, siguiente=None):
+        """Muestra una notificación temporal y opcionalmente encadena otra."""
+        # Cancelar cualquier mensaje pendiente
+        if self._after_id:
+            self.ventana.after_cancel(self._after_id)
+            self._after_id = None
+
+        self.label_cartel.config(text=mensaje)
+        self.label_cartel.grid()
+
+        def finalizar():
+            self._after_id = None
+            if siguiente:
+                self.mostrar_notificacion(siguiente)
+            else:
+                self.ocultar_mensaje()
+
+        # Guardamos el ID del after para poder cancelarlo después
+        self._after_id = self.ventana.after(duracion, finalizar)
+
+ 
     def actualizar_turno(self, color):
-        if color == "B":
+
+        if hasattr(self, "reloj_id") and self.reloj_id:
+            self.ventana.after_cancel(self.reloj_id)
+            self.reloj_id = None
+
+        self.reloj_activo = color
+        if self.reloj_activo == "B":
             self.label_turno.config(text="Turno de:", image=self.img_blancas)
+            minutos, segundos = divmod(self.tiempo_blancas, 60)
+            texto = f"{minutos:02}:{segundos:02}"
+            self.label_cronómetro_2.config(text=texto)
         else:
             self.label_turno.config(text="Turno de:", image=self.img_negras)
+            minutos, segundos = divmod(self.tiempo_negras, 60)
+            texto = f"{minutos:02}:{segundos:02}"
+            self.label_cronómetro.config(text=texto)
+
+        if self.juego_iniciado:
+            self.reloj_id = self.ventana.after(1000, self.actualizar_reloj)
+
+    def actualizar_reloj(self):
+        if self.reloj_activo == "B":
+            self.tiempo_blancas -=1
+            minutos, segundos = divmod(self.tiempo_blancas, 60)
+            self.label_cronómetro_2.config(text=f"{minutos:02}:{segundos:02}")
+        else:
+            self.tiempo_negras -=1
+            minutos, segundos = divmod(self.tiempo_negras, 60)
+            self.label_cronómetro.config(text=f"{minutos:02}:{segundos:02}")
+        self.actualizar_turno(self.reloj_activo)
+
+        self.reloj_id = self.ventana.after(1000, self.actualizar_reloj)
+
+    def reiniciar_cronómetros(self):
+        if hasattr(self, "reloj_id") and self.reloj_id:
+            self.ventana.after_cancel(self.reloj_id)
+            self.reloj_id = None
+            self.tiempo_blancas = 600
+            self.tiempo_negras = 600
+            self.label_cronómetro_2.config(text="10:00")
+            self.label_cronómetro.config(text="10:00")
+            self.juego_iniciado = False
+    
+        
+            
 
     def reiniciar_tablero(self):
         print("Botón clickeado")
@@ -237,14 +346,17 @@ class Interfaz:
         self.tablero.piezas = copy.deepcopy(Posiciones().piezas)
 
         # Resetear atributos del juego
+        self.tablero.canvas.bind("<Button-1>", self.juego.clic)
         self.juego.estructura = Posiciones()
         self.juego.turno = "B"
         self.juego.pieza_seleccionada = None
         self.juego.piezas_eliminadas.clear()
         self.juego.movimientos_validos = []
-
         # Actualizar indicador de turno
+        self.reiniciar_cronómetros()
         self.actualizar_turno(self.juego.turno)
+        self.ocultar_mensaje()
+
 
         # Redibujar piezas
         self.tablero.mostrar_piezas()
@@ -546,11 +658,10 @@ class Juego:
 
         if pieza_destino != "--" and pieza_destino.endswith(self.turno):
             self.tablero.colorear_opciones([])
-            print("No podés moverte sobre una pieza aliada.")
             self.pieza_seleccionada = None
             return
         
-            #llama al método de la clase correspondiente, lo cual tambien hereda el método camino_libre
+        #llama al método de la clase correspondiente, lo cual tambien hereda el método camino_libre
         if clase.movimiento_valido(f_o, c_o, fila_d, col_d, self.estructura.piezas):
 
             copia_tablero = copy.deepcopy(self.estructura.piezas) #Hacemos copia para simular jaque
@@ -560,11 +671,12 @@ class Juego:
             if self.es_jaque(tablero=copia_tablero, turno=self.turno):
                 self.tablero.colorear_opciones([])
                 self.pieza_seleccionada = None
-                print("Movimiento ilegal: dejaría al rey en jaque.")
+                self.interfaz.mostrar_temporal("Movimiento ilegal", 2000, "Rey en jaque!")
                 return
 
             self.capturar_pieza(fila_d, col_d)  #Captura antes de mover
             self.aplicar_movimiento(f_o, c_o, fila_d, col_d, pieza)
+            self.interfaz.ocultar_mensaje()
             self.tablero.colorear_opciones([])
             
             #Abrimos pestaña emergente
@@ -585,12 +697,15 @@ class Juego:
             if self.es_jaque(tablero=self.estructura.piezas, turno=color_rival):
                 if not self.puede_escapar(color_rival, self.estructura.piezas):
                     self.pieza_seleccionada = None
+                    self.interfaz.mostrar_notificacion("Jaque Mate!")
+                    self.tablero.canvas.unbind("<Button-1>")
                     print("Jaque Mate!")
                 else:
-                    print("Rey en jaque")
+                    self.interfaz.mostrar_notificacion("Rey en jaque!")
             else:
                 if not self.puede_escapar(color_rival, self.estructura.piezas):
-                    print ("Rey ahogado")
+                    self.interfaz.mostrar_notificacion("Rey ahogado!")
+                    self.tablero.canvas.unbind("<Button-1>")
             self.tablero.actualizar_jaque(self.estructura.piezas, color_rival)
 
             #Cambiar el turno
@@ -600,10 +715,19 @@ class Juego:
 
         else:
             self.tablero.colorear_opciones([])
-            print("Movimiento inválido")
+
+            if self.es_jaque(tablero=self.estructura.piezas, turno=self.turno):
+                # Secuencia de notificaciones: primero movimiento inválido, luego jaque
+                self.interfaz.mostrar_temporal("Movimiento inválido", 2000, "Rey en jaque!")
+            else:
+                # Solo mostrar movimiento inválido
+                self.interfaz.mostrar_temporal("Movimiento inválido", 2000)
 
 
+        if not self.interfaz.juego_iniciado:
+            self.interfaz.reloj_id = self.interfaz.ventana.after(1000, self.interfaz.actualizar_reloj)
         self.pieza_seleccionada = None
+
 
 
     def capturar_pieza(self, fila, col):
