@@ -153,6 +153,8 @@ class Interfaz:
         self.reloj_activo = "B"
         self.reloj_id = None
         self.juego_iniciado = False
+
+        self.after_id = None  # ← ID del after activo (para cancelar notificaciones previas
         # -- Imagenes --
 
         self.imagenes = cargar_imagenes()
@@ -197,7 +199,7 @@ class Interfaz:
         self.label_turno.grid(row=0, column=1, sticky="w", padx=20)
 
 
-        self._after_id = None  # ← ID del after activo (para cancelar notificaciones previas
+
         #Label notificatorio
         self.label_cartel = tk.Label(self.top_frame, text="", bg="#00BAC7", font=("Arial", 14), height=2)
         self.label_cartel.grid(row=0, column=2, sticky="ew", padx=5)  # se expande horizontalmente
@@ -243,40 +245,40 @@ class Interfaz:
     def mostrar_notificacion(self, mensaje):
         """Muestra una notificación persistente hasta que se oculte manualmente."""
         # Cancelar notificación pendiente si la hay
-        if self._after_id:
-            self.ventana.after_cancel(self._after_id)
-            self._after_id = None
+        if self.after_id:
+            self.ventana.after_cancel(self.after_id)
+            self.after_id = None
 
         self.label_cartel.config(text=mensaje)
         self.label_cartel.grid()
 
     def ocultar_mensaje(self):
         """Oculta la notificación actual."""
-        if self._after_id:
-            self.ventana.after_cancel(self._after_id)
-            self._after_id = None
+        if self.after_id:
+            self.ventana.after_cancel(self.after_id)
+            self.after_id = None
 
         self.label_cartel.grid_remove()
 
     def mostrar_temporal(self, mensaje, duracion=2000, siguiente=None):
         """Muestra una notificación temporal y opcionalmente encadena otra."""
         # Cancelar cualquier mensaje pendiente
-        if self._after_id:
-            self.ventana.after_cancel(self._after_id)
-            self._after_id = None
+        if self.after_id:
+            self.ventana.after_cancel(self.after_id)
+            self.after_id = None
 
         self.label_cartel.config(text=mensaje)
         self.label_cartel.grid()
 
         def finalizar():
-            self._after_id = None
+            self.after_id = None
             if siguiente:
                 self.mostrar_notificacion(siguiente)
             else:
                 self.ocultar_mensaje()
 
         # Guardamos el ID del after para poder cancelarlo después
-        self._after_id = self.ventana.after(duracion, finalizar)
+        self.after_id = self.ventana.after(duracion, finalizar)
 
  
     def actualizar_turno(self, color):
@@ -286,19 +288,24 @@ class Interfaz:
             self.reloj_id = None
 
         self.reloj_activo = color
+
+        
         if self.reloj_activo == "B":
+            self.label_cronómetro.config(bg="#C0C0C0")
             self.label_turno.config(text="Turno de:", image=self.img_blancas)
             minutos, segundos = divmod(self.tiempo_blancas, 60)
             texto = f"{minutos:02}:{segundos:02}"
-            self.label_cronómetro_2.config(text=texto)
+            self.label_cronómetro_2.config(text=texto, bg="#12AA1F")
         else:
+            self.label_cronómetro_2.config(bg="#C0C0C0")
             self.label_turno.config(text="Turno de:", image=self.img_negras)
             minutos, segundos = divmod(self.tiempo_negras, 60)
             texto = f"{minutos:02}:{segundos:02}"
-            self.label_cronómetro.config(text=texto)
+            self.label_cronómetro.config(text=texto, bg="#12AA1F")
 
         if self.juego_iniciado:
             self.reloj_id = self.ventana.after(1000, self.actualizar_reloj)
+
 
     def actualizar_reloj(self):
         if self.reloj_activo == "B":
@@ -319,11 +326,12 @@ class Interfaz:
             self.reloj_id = None
             self.tiempo_blancas = 600
             self.tiempo_negras = 600
-            self.label_cronómetro_2.config(text="10:00")
-            self.label_cronómetro.config(text="10:00")
+            self.label_cronómetro.config(text="10:00", bg="#C0C0C0")
+            self.label_cronómetro_2.config(text="10:00", bg="#C0C0C0")
+
             self.juego_iniciado = False
     
-        
+
             
 
     def reiniciar_tablero(self):
@@ -354,6 +362,7 @@ class Interfaz:
         self.juego.movimientos_validos = []
         # Actualizar indicador de turno
         self.reiniciar_cronómetros()
+
         self.actualizar_turno(self.juego.turno)
         self.ocultar_mensaje()
 
