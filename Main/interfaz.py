@@ -1,10 +1,10 @@
 import tkinter as tk
-from utils import cargar_imagenes
+from utils import cargar_imagenes, obtener_fila_columna
 from tablero import Tablero
 from posiciones import Posiciones
 from juego import Juego
 import copy
-from utils import obtener_fila_columna
+
 
 # -- INTERFAZ COMPLETA -- 
 
@@ -12,7 +12,7 @@ class Interfaz:
     def __init__(self):
         self.ventana = tk.Tk()
         self.ventana.title("Ajedrez")
-        self.ventana.geometry("770x920+100+50")
+        self.ventana.geometry("772x921+100+50")
         self.ventana.resizable(0,0)
 
         self.tiempo_blancas = 600
@@ -25,13 +25,18 @@ class Interfaz:
         # -- Imagenes --
 
         self.imagenes = cargar_imagenes()
+        self.imagenes_mini = cargar_imagenes(tamanio_base=18)
         self.img_blancas = self.imagenes["PB"]
         self.img_negras = self.imagenes["PN"]
 
+        # -- contenedores de piezas eliminadas --
+        self.celdas_blancas = []
+        self.celdas_negras = []
+
 
         # -- Frames main --
-        self.main_frame = tk.Frame(self.ventana, bg="#bebebe")
-        self.main_frame.pack(fill="both")
+        self.main_frame = tk.Frame(self.ventana, bg="#347F9C")
+        self.main_frame.pack()
 
 
         # -- Contenedor central que agrupa las franjas y el tablero --
@@ -39,9 +44,10 @@ class Interfaz:
         self.centro_frame.pack(expand=True, fill="both")
 
         # -- Franja superior --
-        self.top_frame = tk.Frame(self.centro_frame, bg="#347F9C", height=60)
+        self.top_frame = tk.Frame(self.centro_frame, bg="#347F9C", height=80, bd=2, relief="solid")
         self.top_frame.pack(side="top", fill="x")
         self.top_frame.pack_propagate(False)
+
 
         # Configurar columnas para centrar el label
         self.top_frame.columnconfigure(0, weight=0)  # botón
@@ -61,7 +67,7 @@ class Interfaz:
         # Label centrado
         self.label_turno = tk.Label(
             self.top_frame, text="Turno de:", image=self.img_blancas,
-            compound="right", font=("Arial", 24), bg="#347F9C"
+            compound="right", font=("Arial", 22), bg="#347F9C"
         )
         self.label_turno.grid(row=0, column=1, sticky="w", padx=20)
 
@@ -75,17 +81,10 @@ class Interfaz:
 
         # Cronómetro a la derecha
         self.label_cronómetro = tk.Label(self.top_frame, text="10:00",font=("Arial", 14), bg="#C0C0C0", width=8, height=3, bd=2, relief="solid")
-        self.label_cronómetro.grid(row=0, column=3, sticky="e", padx= (0,1))
+        self.label_cronómetro.grid(row=0, column=3, sticky="e")
 
         # -- Contenedor del tablero (centrado) --
-        self.frame_tablero = tk.Frame(
-            self.centro_frame, 
-            bg="#bebebe",        # color interno del frame
-            bd=1,                # grosor del borde
-            relief="solid",      # estilo de borde
-            highlightbackground="black",  # color del borde en algunos sistemas
-            highlightthickness=1       # grosor del borde visible
-        )
+        self.frame_tablero = tk.Frame(self.centro_frame, bg="#bebebe",bd=1,relief="solid",highlightbackground="black",highlightthickness=1)
         self.frame_tablero.pack(side="top")
 
         # -- Franja inferior simétrica --
@@ -93,17 +92,66 @@ class Interfaz:
         self.bottom_frame.pack(side="bottom", fill="x")
         self.bottom_frame.pack_propagate(False)
 
-        self.bottom_frame.columnconfigure(0, weight=0)  # Izquierda
+        self.bottom_frame.columnconfigure(0, weight=1)  # Izquierda
         self.bottom_frame.columnconfigure(1, weight=1)  # Centro expansible
         self.bottom_frame.columnconfigure(2, weight=0)  # Derecha (cronómetro)
 
+        # -- ELIMINADOS BLANCOS -- #
+
+        self.frame_blanco = tk.Frame(self.bottom_frame, height=3, bg="#347F9C", bd=2, relief="solid")
+        self.frame_blanco.grid(row=0, column=0, sticky="nsew")
+
+
+        self.label1 = tk.Label(self.frame_blanco, text= "Piezas eliminadas:", font=("Arial", 12),fg= "white", bg="#347F9C")
+        self.label1.pack(side="left",padx=5, pady=(0,20))
+
+        self.blancos_eliminados = tk.Frame(self.frame_blanco, height=1, bg="#347F9C")
+        self.blancos_eliminados.pack(side="left", padx=5, expand=False)
+
+
+        for fila in range(2):
+            for columna in range(8):
+                celda = tk.Frame(self.blancos_eliminados, width=20, height=20, bg="#347F9C", bd=0, highlightthickness=0)
+                if fila == 0:
+                    celda.grid(row=fila, column=columna,pady=(0,5))
+                elif fila == 1:
+                    celda.grid(row=fila, column=columna,pady=(5,0))
+                self.celdas_blancas.append(celda)
+
+
+                
+        # -- ELIMINADOS NEGROS -- #
+
+        self.frame_negro = tk.Frame(self.bottom_frame, height=3, bg="#347F9C", bd=2, relief="solid")
+        self.frame_negro.grid(row=0, column=1, sticky="nsew")
+
+        self.label2 = tk.Label(self.frame_negro, text= "Piezas eliminadas:", font=("Arial", 12), fg= "white", bg="#347F9C")
+        self.label2.pack(side="left",padx=5, pady=(0,20))
+
+        self.negros_eliminados = tk.Frame(self.frame_negro, height=1, bg="#347F9C")
+        self.negros_eliminados.pack(side="left", padx=5, expand=False)
+
+
+        for fila in range(2):
+            for columna in range(8):
+                celda = tk.Frame(self.negros_eliminados, width=20, height=20, bg="#347F9C", bd=0, highlightthickness=0)
+                if fila == 0:
+                    celda.grid(row=fila, column=columna,pady=(0,5))
+                elif fila == 1:
+                    celda.grid(row=fila, column=columna,pady=(5,0))
+                self.celdas_negras.append(celda)
+
         # Cronómetro a la derecha
         self.label_cronómetro_2 = tk.Label(self.bottom_frame, text="10:00",font=("Arial", 14), bg="#C0C0C0", width=8, height=3, bd=2, relief="solid")
-        self.label_cronómetro_2.grid(row=0, column=2, sticky="e", padx=(0,1))
+        self.label_cronómetro_2.grid(row=0, column=2, sticky="e", padx=(0,1),pady=(0,5))
+
+
 
         # -- Tablero Visual y Lógico --
         self.tablero = Tablero(self.frame_tablero, 96, piezas=Posiciones().piezas)
         self.juego = (Juego(self.tablero, self))
+
+
 
 
 
@@ -197,6 +245,35 @@ class Interfaz:
             self.label_cronómetro_2.config(text="10:00", bg="#C0C0C0")
 
             self.juego_iniciado = False
+
+    def actualizar_eliminadas(self):
+
+        # Limpiar celdas
+        for celda in self.celdas_blancas + self.celdas_negras:
+            celda.grid_propagate(False)
+            for widget in celda.winfo_children():
+                widget.destroy()
+
+        # Mostrar piezas eliminadas
+        blancas = [p for p in self.juego.piezas_eliminadas if p.endswith("B")]
+        negras = [p for p in self.juego.piezas_eliminadas if p.endswith("N")]
+
+        self.imagenes_eliminadas = []
+
+        for i, pieza in enumerate(blancas[:16]):  # hasta 16 eliminadas máx.
+            img = self.imagenes_mini[pieza]
+            label = tk.Label(self.celdas_blancas[i], image=img, bg="#347F9C")
+            label.image = img
+            label.pack(expand=True)
+            self.imagenes_eliminadas.append(img)
+
+        for i, pieza in enumerate(negras[:16]):
+            img = self.imagenes_mini[pieza]
+            label = tk.Label(self.celdas_negras[i], image=img, bg="#347F9C")
+            label.image = img
+            label.pack(expand=True)
+            self.imagenes_eliminadas.append(img)
+
     
 
             
@@ -229,7 +306,7 @@ class Interfaz:
         self.juego.movimientos_validos = []
         # Actualizar indicador de turno
         self.reiniciar_cronómetros()
-
+        self.actualizar_eliminadas()
         self.actualizar_turno(self.juego.turno)
         self.ocultar_mensaje()
 

@@ -3,7 +3,6 @@ from utils import obtener_fila_columna, definir_clase
 import copy
 
 
-
 class Juego:
     def __init__(self, tablero_visual, interfaz):
         self.tablero = tablero_visual
@@ -144,6 +143,7 @@ class Juego:
             if (fila, col) in self.tablero.ids:
                 self.tablero.canvas.delete(self.tablero.ids[(fila, col)])
                 del self.tablero.ids[(fila, col)]
+            self.interfaz.actualizar_eliminadas()
 
             #  Borrar la pieza lógica
             self.estructura.piezas[fila][col] = "--"
