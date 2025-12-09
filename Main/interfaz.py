@@ -217,21 +217,43 @@ class Interfaz:
             minutos, segundos = divmod(self.tiempo_negras, 60)
             texto = f"{minutos:02}:{segundos:02}"
             self.label_cronómetro.config(text=texto, bg="#12AA1F")
-
+        
         if self.juego_iniciado:
-            self.reloj_id = self.ventana.after(1000, self.actualizar_reloj)
+            self.reloj_id = self.ventana.after(1000,self.actualizar_reloj)
+        
+
 
 
     def actualizar_reloj(self):
+        if self.reloj_activo is None:
+            return
+
         if self.reloj_activo == "B":
-            self.tiempo_blancas -=1
+            self.tiempo_blancas -= 1
+
+            if self.tiempo_blancas <= 0:
+                self.label_cronómetro_2.config(text="00:00")
+                self.mostrar_notificacion("Ganador: NEGRAS")
+                self.tablero.canvas.unbind("<Button-1>")
+                self.reloj_activo = None
+                return  # ⛔ Detiene completamente el cronómetro
+
             minutos, segundos = divmod(self.tiempo_blancas, 60)
             self.label_cronómetro_2.config(text=f"{minutos:02}:{segundos:02}")
+
         else:
-            self.tiempo_negras -=1
+            self.tiempo_negras -= 1
+
+            if self.tiempo_negras <= 0:
+                self.label_cronómetro.config(text="00:00")
+                self.mostrar_notificacion("Ganador: BLANCAS")
+                self.tablero.canvas.unbind("<Button-1>")
+                self.reloj_activo = None
+                return  #  Detiene completamente el cronómetro
+
             minutos, segundos = divmod(self.tiempo_negras, 60)
             self.label_cronómetro.config(text=f"{minutos:02}:{segundos:02}")
-        self.actualizar_turno(self.reloj_activo)
+
 
         self.reloj_id = self.ventana.after(1000, self.actualizar_reloj)
 
@@ -313,6 +335,19 @@ class Interfaz:
 
         # Redibujar piezas
         self.tablero.mostrar_piezas()
+
+    def fin_de_partida(self, mensaje):
+        self.mostrar_notificacion(mensaje)
+
+        # Deshabilitar tablero
+        self.tablero.canvas.unbind("<Button-1>")
+
+        # Detener reloj
+        if hasattr(self, "reloj_id") and self.reloj_id:
+            self.ventana.after_cancel(self.reloj_id)
+            self.reloj_id = None
+
+        self.reloj_activo = None
 
     def run(self):
         self.ventana.mainloop()

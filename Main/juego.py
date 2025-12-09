@@ -3,6 +3,7 @@ from utils import obtener_fila_columna, definir_clase
 import copy
 
 
+
 class Juego:
     def __init__(self, tablero_visual, interfaz):
         self.tablero = tablero_visual
@@ -100,15 +101,14 @@ class Juego:
             if self.es_jaque(tablero=self.estructura.piezas, turno=color_rival):
                 if not self.puede_escapar(color_rival, self.estructura.piezas):
                     self.pieza_seleccionada = None
-                    self.interfaz.mostrar_notificacion("Jaque Mate!")
-                    self.tablero.canvas.unbind("<Button-1>")
-                    print("Jaque Mate!")
+                    self.interfaz.fin_de_partida("Jaque Mate!")
+                    return
                 else:
                     self.interfaz.mostrar_notificacion("Rey en jaque!")
             else:
                 if not self.puede_escapar(color_rival, self.estructura.piezas):
-                    self.interfaz.mostrar_notificacion("Rey ahogado!")
-                    self.tablero.canvas.unbind("<Button-1>")
+                    self.interfaz.fin_de_partida("Rey ahogado!") 
+                    return                 
             self.tablero.actualizar_jaque(self.estructura.piezas, color_rival)
 
             #Cambiar el turno
